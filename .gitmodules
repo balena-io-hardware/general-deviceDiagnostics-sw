@@ -1,3 +1,0 @@
-[submodule "etcher"]
-	path = etcher
-	url = https://github.com/balena-io/etcher.git

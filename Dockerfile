@@ -1,57 +1,14 @@
-FROM balenalib/aarch64-debian-node:12.20-buster-build as builder
-
-RUN apt-get update
-RUN apt-get install python jq
-
-# install dependencies
-
-WORKDIR /usr/src/etcher
-
-COPY etcher/scripts scripts
-COPY etcher/typings typings
-COPY etcher/tsconfig.json etcher/npm-shrinkwrap.json etcher/package.json ./
-
-ENV npm_config_disturl=https://electronjs.org/headers
-ENV npm_config_runtime=electron
-RUN npm_config_target=$(jq .devDependencies.electron package.json) npm i
+FROM balenalib/aarch64-alpine-node:14-latest
 
 WORKDIR /usr/src/app
 
-COPY package.json package-lock.json ./
-RUN npm i
+COPY ./api ./api
+COPY ./ui/build ./ui/build
+COPY ./start.sh ./start.sh
 
-# build sources
+RUN cd api && npm install
+RUN chmod +x ./start.sh
 
-WORKDIR /usr/src/etcher
+RUN apk add fio
 
-COPY etcher/assets assets
-COPY etcher/lib lib
-COPY etcher/tsconfig.webpack.json etcher/webpack.config.ts etcher/electron-builder.yml etcher/afterPack.js ./
-RUN npm run webpack
-RUN PATH=$(pwd)/node_modules/.bin/:$PATH electron-builder --dir --config.asar=false --config.npmRebuild=false --config.nodeGypRebuild=false
-
-WORKDIR /usr/src/app
-
-COPY tsconfig.json update-config-and-start.ts ./
-RUN npx tsc update-config-and-start.ts
-
-FROM balenablocks/aarch64-balena-electron-env:v1.2.9
-COPY --from=builder /usr/src/etcher/dist/linux-arm64-unpacked/resources/app /usr/src/app
-COPY --from=builder /usr/src/etcher/node_modules/electron/ /usr/src/app/node_modules/electron
-
-WORKDIR /usr/src/app/node_modules/.bin
-RUN ln -s ../electron/cli.js electron
-
-COPY zram.sh /usr/src/app/
-COPY screensaver_on.sh screensaver_off.sh /usr/bin/
-RUN chmod +x /usr/bin/screensaver_on.sh
-RUN chmod +x /usr/bin/screensaver_off.sh
-RUN chmod +x /usr/src/app/zram.sh
-
-COPY --from=builder /usr/src/app/update-config-and-start.js /usr/src/app
-
-WORKDIR /usr/src/app
-
-CMD \
-	./zram.sh \
-	&& node /usr/src/app/update-config-and-start.js
+CMD ["./start.sh"]
