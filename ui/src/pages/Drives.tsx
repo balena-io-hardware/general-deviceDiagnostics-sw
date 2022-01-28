@@ -61,63 +61,40 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
     return () => ws.close();
   }, []);
 
+  useEffect(() => {
+    if (fioCallAllInProgress) {
+      setFioAllProgress(100);
+  
+      if (onDataReceived) {
+        onDataReceived({ devices: drives, results: fioResults })
+      }
+
+      setFioCallAllInProgress(false);
+    }
+
+    if (fioCallOneByOneInProgress) {
+      if (!canceled) {
+        if (driveUnderTestIndex < drives.length - 1) {
+          setFioOneByOneProgress(Math.round((driveUnderTestIndex + 1) / drives.length * 100))
+          callFioOneByOne(driveUnderTestIndex + 1);
+        } else {
+          setFioOneByOneProgress(100);
+
+          if (onDataReceived) {
+            onDataReceived({ devices: drives, results: fioResults })
+          }
+
+          setFioCallOnebyOneInProgress(false);
+        }
+      } 
+    }
+  }, [fioResults])
+
   const processWsDoneMessage = async (ws: WebSocket) => {
     let fioRes = await fetch('/api/drives/fio/last')
     const lastRes = parseFioResultToDict(await fioRes.json())      
 
-    // getting states through the setters otherwise all of them are the default
-    setFioResults(prevState => {
-      let newResults = [...prevState, lastRes]
-
-      setFioCallAllInProgress(fioAllRunning => {
-        ws.send(JSON.stringify({all: fioAllRunning}))
-        
-        if (fioAllRunning) {
-          setFioAllProgress(100);
-  
-          if (onDataReceived) {
-            onDataReceived({ devices: drives, results: newResults })
-          }
-        }
-  
-        return false;
-      });
-  
-      setDrives(currentDrivesList => {
-        setFioCallOnebyOneInProgress(fioOneRunning => {
-          ws.send(JSON.stringify({one: fioOneRunning}))
-    
-          if (fioOneRunning) {
-            if (canceled) return false;
-    
-            setDriveUnderTestIndex(lastIndex => {
-              ws.send(JSON.stringify({lsi: lastIndex}))
-              ws.send(JSON.stringify({dri: currentDrivesList.length}))
-    
-              let newIndex = lastIndex + 1
-              setFioOneByOneProgress(Math.round(newIndex / currentDrivesList.length * 100))
-    
-              if (newIndex < currentDrivesList.length) {
-                callFioOneByOne(newIndex);
-              } else {          
-                if (onDataReceived) {
-                  onDataReceived({ devices: currentDrivesList, results: newResults })
-                }
-              }
-    
-              return newIndex
-            })
-    
-            return true // this is meaningless but need to return something      
-          } else { 
-            return false 
-          }     
-        })
-        return currentDrivesList
-      })
-
-      return newResults;
-    })
+    setFioResults(prevState => [...prevState, lastRes])
   }
 
   useEffect(() => {
@@ -153,7 +130,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
 
   useInterval(() => {
     setFioAllProgress(prevState => prevState + Math.floor(Math.random() * 7))
-  }, fioCallAllInProgress ? 700 : undefined)
+  }, fioCallAllInProgress ? 600 : undefined)
 
   useInterval(() => {
     setFioOneByOneProgress(prevState => prevState + Math.floor(Math.random() * 3))
@@ -203,14 +180,8 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
       let devices = drives.map(d => `/dev/${d.device}`)
       const fioStart = await fetch(`/api/drives/fio`, { 
         method: 'POST',
-        body: JSON.stringify({ 
-          devices: devices, 
-          invalidate: 1,
-          overwrite: 1
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        body: JSON.stringify({ devices: devices }),
+        headers: { 'Content-Type': 'application/json' },
       })
       
       if (fioStart.ok) {
@@ -223,46 +194,21 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
 
   const callFioOneByOne = async (driveIndex: number) => {    
     if (driveIndex === 0) {
-      setDriveUnderTestIndex(0)
       setCanceled(false)
-      setFioOneByOneProgress(0.1);
+      setFioOneByOneProgress(1);
     }
 
-    setDrives(currentDrives => {
-      if (currentDrives.length > driveIndex) {
-        if (canceled) {
-          setFioCallOnebyOneInProgress(false)
-          return currentDrives;
-        }
-    
-        fetch(`/api/drives/fio`, { 
-          method: 'POST',
-          body: JSON.stringify({ 
-            devices: [`/dev/${currentDrives[driveIndex].device}`], 
-            invalidate: 1,
-            overwrite: 1
-          }),
-          headers: {
-            'Content-Type': 'application/json'
-          },
-        }).then(res => {
-          if (res.ok) {  
-            setDriveUnderTestIndex(di => { 
-              if (di <= currentDrives.length) {
-                setFioCallOnebyOneInProgress(true)
-              } else {
-                setFioCallOnebyOneInProgress(false)
-              }
-              return di;
-            })
-          }
-        })
-        
-      } else {
-        setFioCallOnebyOneInProgress(false)
-      }
-      return currentDrives
+    setDriveUnderTestIndex(driveIndex);
+
+    const fioRes = await fetch(`/api/drives/fio`, { 
+      method: 'POST',
+      body: JSON.stringify({ devices: [`/dev/${drives[driveIndex].device}`] }),
+      headers: { 'Content-Type': 'application/json' },
     })
+        
+    if (fioRes.ok) {        
+      setFioCallOnebyOneInProgress(true)        
+    }
   }
 
   const handleResultClick = async (device: string) => {
@@ -296,7 +242,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
 
     if (driveIndex > -1) {
       let driveName = drives[driveIndex].path
-      let ledOne = driveLeds[driveName][0] // led.*_r
+      let ledOne = driveLeds ? driveLeds[driveName][0] : '' // led.*_r
       const numberPattern = /\d+/g;
       return ledOne.match(numberPattern)?.join('')
     }
@@ -305,7 +251,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
   return (
     <>
       <Box style={{textAlign: 'left', padding: '10px 0 0 10px '}}>
-        <Heading.h4>Write data to drives</Heading.h4>
+        <HighlightedName>{drives.length +' drives'}</HighlightedName>
       </Box>
       <Box style={{overflowY: 'auto'}}>
         <Flex 
@@ -314,7 +260,6 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
           paddingBottom={'10px'}
         >      
           <Box width={'210px'}>
-
             <ProgressButton  
               type='flashing'
               progressText='Writing...'
@@ -330,7 +275,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
           </Box>  
           <Box>
             &nbsp;
-            <HighlightedName>{drives.length +' drives'}</HighlightedName>
+            
             &nbsp;
           </Box>
           <Box width={'210px'}>
@@ -390,8 +335,9 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
           justifyContent={'center'}
           style={{padding: '15px 0 15px 0' }}
       >
-        <Button light onClick={() => onBack ? onBack() : null }>Back</Button>&nbsp;
-        <Button primary onClick={() => onNext ? onNext() : null }>Next</Button>&nbsp;
+        <Button outline onClick={() => onBack ? onBack() : null }>Back</Button>
+         &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 
+        <Button primary onClick={() => onNext ? onNext() : null }>Next</Button>
       </Flex>
     </>
   );
