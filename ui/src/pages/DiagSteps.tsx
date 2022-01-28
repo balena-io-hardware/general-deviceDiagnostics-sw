@@ -85,8 +85,9 @@ export const DiagSteps = ({ onClose }: DiagStepsProps) => {
               justifyContent={'center'}
               style={{position: 'absolute', left: '30%', right: '30%', bottom: '30px', zIndex: 999}}
             >
-              <Button light onClick={() => prevStep('start') }>Back</Button>&nbsp;
-              <Button primary onClick={() =>  nextStep('drives') }>Next</Button>&nbsp;
+              <Button outline onClick={() => prevStep('start') }>Back</Button>
+               &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 
+              <Button primary onClick={() =>  nextStep('drives') }>Next</Button>
             </Flex>  
             <iframe 
               className="App-frame" 

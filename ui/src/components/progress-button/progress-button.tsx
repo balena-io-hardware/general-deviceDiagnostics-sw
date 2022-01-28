@@ -93,7 +93,6 @@ export class ProgressButton extends React.PureComponent<ProgressButtonProps> {
 						justifyContent="space-between"
 						width="100%"
 						style={{
-							marginTop: 42,
 							marginBottom: '6px',
 							fontSize: 16,
 							fontWeight: 600,

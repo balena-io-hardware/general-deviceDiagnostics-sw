@@ -57,9 +57,6 @@ export const Leds = ({ autoload, onDataReceived, onBack, onNext }: LedsPageProps
 
   return (
     <>
-      <Box style={{textAlign: 'left', padding: '10px'}}>
-        <Heading.h4>Set LED color</Heading.h4>
-      </Box>
       { autoload ? <></> :
         <Box>
           <Button onClick={() => getLeds()}>Get available leds</Button>
@@ -90,8 +87,9 @@ export const Leds = ({ autoload, onDataReceived, onBack, onNext }: LedsPageProps
         justifyContent={'center'}
         style={{paddingBottom: '30px'}}
       >
-        <Button light onClick={() => onBack ? onBack() : null }>Back</Button>&nbsp;
-        <Button primary onClick={() => onNext ? onNext() : null }>Next</Button>&nbsp;
+        <Button outline onClick={() => onBack ? onBack() : null }>Back</Button>
+         &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;         
+        <Button primary onClick={() => onNext ? onNext() : null }>Next</Button>
       </Flex>
      
     </>

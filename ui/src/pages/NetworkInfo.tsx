@@ -31,9 +31,6 @@ export const NetworkInfo = ({ onDataReceived, onBack, onNext }: NetworkInfoProps
 
     return (
       <>
-        <Box style={{textAlign: 'left', padding: '10px'}}>
-          <Heading.h4>Check network connectivity</Heading.h4>
-        </Box>
         <Box style={{wordBreak: 'break-word', padding: '10px 80px 10px 80px'}}>
           <Flex 
             justifyContent={'center'}
@@ -46,8 +43,13 @@ export const NetworkInfo = ({ onDataReceived, onBack, onNext }: NetworkInfoProps
                   <Tab title={n}>
                     <ol>
                       {networkInfo[n].map((i: any) => 
-                        <li><Txt>{JSON.stringify(i)}</Txt></li>)
-                      }
+                        <li>
+                          <br/>                       
+                          <ul style={{listStyle: 'none', textAlign: 'left'}}>
+                            {Object.keys(i).map(v => <li>{`${v}: ${i[v]}`}</li>)}
+                          </ul>
+                        </li>
+                      )}                   
                     </ol>
                   </Tab>)
                 ) as any}
@@ -60,7 +62,7 @@ export const NetworkInfo = ({ onDataReceived, onBack, onNext }: NetworkInfoProps
           justifyContent={'center'}
           style={{paddingBottom: '30px'}}
         >
-          <Button light onClick={() => onBack ? onBack() : null }>Back</Button>&nbsp;
+          <Button outline onClick={() => onBack ? onBack() : null }>Back</Button>&nbsp;
           {/* <Button primary onClick={() => onNext ? onNext() : null }>Finish</Button>&nbsp; */}
         </Flex>
       </>

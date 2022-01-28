@@ -1,0 +1,17 @@
+version: '2'
+volumes:
+    diag_store:
+services:  
+  diag:
+    build: ./
+    privileged: true
+    network_mode: host
+    volumes:
+      - 'diag_store:/usr/src/diag-data'
+    labels:
+      io.balena.features.dbus: 1
+      io.balena.features.supervisor-api: '1'
+    environment:
+      - 'UDEV=1'
+    ports:
+      - '8000:3000'
