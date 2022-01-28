@@ -4,12 +4,12 @@ RUN apk add fio
 
 WORKDIR /usr/src/app
 
+COPY ./start.sh ./start.sh
+RUN chmod +x ./start.sh
+
 COPY ./api ./api
 RUN cd api && npm install
 
 COPY ./ui/build ./ui/build
-
-COPY ./start.sh ./start.sh
-RUN chmod +x ./start.sh
 
 CMD ["./start.sh"]
