@@ -1,8 +1,5 @@
-# This is a basic workflow to help you get started with Actions
-
 name: docker-publish
 
-# Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
@@ -11,15 +8,38 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set output
-        id: vars
+      
+      - name: Get tag
+        id: preparetag
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-      - name: Check output
-        run: echo ${{ steps.vars.outputs.tag }}
+        
+      - name: Check tag
+        run: echo ${{ steps.preparetag.outputs.tag }}
+        
+      - uses: actions/setup-node@v2.5.1
+        with:
+          node-version: 14
+          
+      - uses: docker/login-action@v1.12.0
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PAT_HW_DIAG }}
+          
+      - name: Build contents
+        run: cd ui && npm run build
+        
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: mcraa/hardware-diagnostics:latest,mcraa/hardware-diagnostics:${{ steps.preparetag.outputs.tag }}
+        
+        
+      
+        
