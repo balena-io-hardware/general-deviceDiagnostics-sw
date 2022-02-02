@@ -253,7 +253,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
       <Box style={{textAlign: 'left', padding: '10px 0 0 10px '}}>
         <HighlightedName>{drives.length +' drives'}</HighlightedName>
       </Box>
-      <Box style={{overflowY: 'auto'}}>
+      <Box style={{overflowY: 'auto', height: '100%'}}>
         <Flex 
           alignItems={'center'}
           justifyContent={'center'}
@@ -333,7 +333,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
       <Flex 
           alignItems={'flex-end'} 
           justifyContent={'center'}
-          style={{padding: '15px 0 15px 0' }}
+          style={{padding: '15px 0 30px 0' }}
       >
         <Button outline onClick={() => onBack ? onBack() : null }>Back</Button>
          &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 
