@@ -1,22 +1,32 @@
-var express = require('express');
-var router = express.Router();
-var fs = require('fs');
-var process = require('child_process');
-var path = require('path');
-var sdk = require('etcher-sdk');
+import { Request, Response, NextFunction } from 'express'
+import * as express from 'express'
+import * as fs from 'fs';
+import * as path from 'path';
 
-var DiagHistory = require('../services/DiagResult').DiagHistory
-var drivesSocket = require('../sockets/drives')
+import * as process from 'child_process'
+
+import { 
+  OnFailFunction, 
+  OnProgressFunction, 
+  pipeSourceToDestinations 
+} from 'etcher-sdk/build/multi-write'
+import { SourceDestination } from 'etcher-sdk/build/source-destination';
+
+import { DiagHistory } from '../services/DiagResult'
+import * as drivesSocket from '../sockets/drives'
+
 let runningProcess = {};
+var router = express.Router();
 
-const broadcastToSockets = (message) => {
+const broadcastToSockets = (message: string) => {
   [...drivesSocket.clients.keys()].forEach(client => {
     client.send(message);
   })
 }
 
+
 /* GET /dev/sd[a-z] drives and /dev/disk/by-path */
-router.get('/', async (req, res, next) => {
+router.get('/', async (req: Request, res:Response) => {
   try {
     const drives = fs.readdirSync("/dev/disk/by-path")
       .filter(f => f.indexOf('usb') > -1 && f.indexOf("scsi") > -1)
@@ -26,12 +36,22 @@ router.get('/', async (req, res, next) => {
       .filter(d => d.device.length === 3) // no partitions /sda1 /sda2 ... 
       
     res.json(drives);
-  } catch {
-    res.sendStatus(501)
+  } catch (err){
+    res.status(501).send(err)
   }
 });
 
-router.post('/fio', async (req, res, next) => {
+router.post('/sdk', async (req: Request, res: Response) => {
+  const {
+    devices
+  } = req.body;
+
+  const source = {} // TODO
+
+  //pipeSourceToDestinations({ source, destinations: devices })
+})
+
+router.post('/fio', async (req: Request, res: Response) => {
   const { 
     devices, 
     rw, 
@@ -83,7 +103,12 @@ router.post('/fio', async (req, res, next) => {
   console.log("fio", fileName)
 
   let fioRun = process.spawn('fio', parameters);
-  runningProcess[fioRun.pid] = fioRun
+  if (fioRun.pid) {
+    runningProcess[fioRun.pid] = fioRun
+  }  else {
+    res.status(501).send("Unable to spawn fio")
+    return
+  }
 
   fioRun.on('exit', () => {
     const processIds = Object.keys(runningProcess)
@@ -109,7 +134,7 @@ router.post('/fio', async (req, res, next) => {
   res.sendStatus(201)
 })
 
-router.get('/fio/cancel', (req, res) => {
+router.get('/fio/cancel', (req: Request, res: Response) => {
   broadcastToSockets('cancel')
   
   try {
@@ -128,7 +153,7 @@ router.get('/fio/cancel', (req, res) => {
   res.status(204).send()
 })
 
-router.get('/fio/last', async (req, res, next) => {
+router.get('/fio/last', async (_: Request, res: Response) => {
   try {
     const data = fs.readFileSync(path.join(__dirname, 'last_fio_result.json'), 'utf8')
     res.json(JSON.parse(data))
