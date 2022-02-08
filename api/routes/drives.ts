@@ -3,6 +3,7 @@ var router = express.Router();
 var fs = require('fs');
 var process = require('child_process');
 var path = require('path');
+var sdk = require('etcher-sdk');
 
 var DiagHistory = require('../services/DiagResult').DiagHistory
 var drivesSocket = require('../sockets/drives')
@@ -63,7 +64,7 @@ router.post('/fio', async (req, res, next) => {
     `--direct=${direct || 0}`,
     `--rw=${rw || "write"}`,
     `--bs=${bs || "1024k"}`,
-    `--runtime=${runtime || 10}`,
+    `--runtime=${runtime || 20}`,
     '--time_based',
     `--numjobs=${numjobs || 1}`,
     `--name=${name || `etcher_test_${new Date(Date.now()).toISOString()}`}`,
