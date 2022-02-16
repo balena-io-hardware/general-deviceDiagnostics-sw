@@ -1,19 +1,24 @@
-import { Request, Response, NextFunction } from 'express'
-import * as express from 'express'
 import * as fs from 'fs';
 import * as path from 'path';
-
+import * as Stream from 'stream'
 import * as process from 'child_process'
+import * as crypto from 'crypto';
+
+import { Request, Response } from 'express'
+import * as express from 'express';
 
 import { 
+  MultiDestinationProgress,
   OnFailFunction, 
   OnProgressFunction, 
-  pipeSourceToDestinations 
+  pipeSourceToDestinations,
+  PipeSourceToDestinationsResult
 } from 'etcher-sdk/build/multi-write'
-import { SourceDestination } from 'etcher-sdk/build/source-destination';
+import { SourceDestination, File } from 'etcher-sdk/build/source-destination';
 
 import { DiagHistory } from '../services/DiagResult'
 import * as drivesSocket from '../sockets/drives'
+import { ReadOnlyMemoryStream } from '../services/ReadOnlyMemoryStream';
 
 let runningProcess = {};
 var router = express.Router();
@@ -24,6 +29,26 @@ const broadcastToSockets = (message: string) => {
   })
 }
 
+const onFail: OnFailFunction = async (dest: SourceDestination) => {
+  console.log(`Error during write | ${(await dest.getMetadata()).url}`)
+  broadcastToSockets(`Error: write failed on ${(await dest.getMetadata()).url}`)
+}
+
+const onProgress: OnProgressFunction = (progress: MultiDestinationProgress) => {
+  console.table(progress)
+  fs.writeFileSync(
+    path.join(__dirname, 'last_sdk_result.json'), 
+    JSON.stringify({
+      jobs: [
+        {
+          write: {
+            bw: progress.averageSpeed
+          }
+        }
+      ]
+    }));
+  broadcastToSockets(`progress: ${progress.percentage}`)
+}
 
 /* GET /dev/sd[a-z] drives and /dev/disk/by-path */
 router.get('/', async (req: Request, res:Response) => {
@@ -46,9 +71,32 @@ router.post('/sdk', async (req: Request, res: Response) => {
     devices
   } = req.body;
 
-  const source = {} // TODO
+  const readBuffer = Buffer.from(crypto.randomBytes(250 * 1024 * 1024).toString('hex'));
+  const source = new ReadOnlyMemoryStream(readBuffer);
 
-  //pipeSourceToDestinations({ source, destinations: devices })
+  const destinations = devices.map((d: string) => new File({ path: d, write: true }))
+
+  try {
+    const task = pipeSourceToDestinations({ 
+      source, 
+      destinations,
+      onFail,
+      onProgress
+    })
+
+    task.then((writeResult: PipeSourceToDestinationsResult) => {
+      console.log(`-- Sdk test done --`)
+      console.table(writeResult)
+      console.table(writeResult.sourceMetadata)
+      broadcastToSockets('done') 
+    })
+
+    res.sendStatus(201);
+  } catch (err) {
+    console.log(err);
+    res.status(501).send(err)
+  }
+
 })
 
 router.post('/fio', async (req: Request, res: Response) => {
@@ -151,6 +199,16 @@ router.get('/fio/cancel', (req: Request, res: Response) => {
   }
 
   res.status(204).send()
+})
+
+router.get('/sdk/last', async (_: Request, res: Response) => {
+  try {
+    const data = fs.readFileSync(path.join(__dirname, 'last_sdk_result.json'), 'utf8')
+    res.json(JSON.parse(data))
+  } catch (err) {
+    console.error(err)
+    res.sendStatus(501);
+  }
 })
 
 router.get('/fio/last', async (_: Request, res: Response) => {
