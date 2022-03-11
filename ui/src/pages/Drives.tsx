@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Button, HighlightedName, Table, Txt, Flex, Heading } from 'rendition'
+import { Box, Button, Checkbox, HighlightedName, Table, Txt, Flex } from 'rendition'
 import { ProgressButton } from '../components/progress-button/progress-button';
 import { FioResult, ReadOrWriteOrTrim } from '../iterfaces/FioResult';
 import { LedService } from '../services/Leds'
@@ -40,6 +40,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
   const [fioCallAllInProgress, setFioCallAllInProgress] = useState<boolean>(false)  
   const [canceled, setCanceled] = useState(false);
   const [driveUnderTestIndex, setDriveUnderTestIndex] = useState<number>(0);
+  const [sdkNotFio, setSdkNotFio] = useState(false);
 
   useEffect(() => {
     const ws = new WebSocket(`ws://${window.location.hostname}:7071`)
@@ -55,7 +56,9 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
       
       if (event.data === 'done') {
         await processWsDoneMessage(ws);
-      }      
+      } else if (event.data === 'done sdk') {
+        await processWsDoneSdkMessage(ws);
+      }     
     };
 
     return () => ws.close();
@@ -93,6 +96,13 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
   const processWsDoneMessage = async (ws: WebSocket) => {
     let fioRes = await fetch('/api/drives/fio/last')
     const lastRes = parseFioResultToDict(await fioRes.json())      
+
+    setFioResults(prevState => [...prevState, lastRes])
+  }
+
+  const processWsDoneSdkMessage = async (ws: WebSocket) => {
+    let sdkRes = await fetch('/api/drives/sdk/last')
+    const lastRes = parseSdkResultToDict((await sdkRes.text()).split('=>'))      
 
     setFioResults(prevState => [...prevState, lastRes])
   }
@@ -158,9 +168,17 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
     }
   }
 
-  const cancelFio = async () => {
+  const parseSdkResultToDict = (input: string[]) => {
+
+    return { 
+      name: input[0],
+      data: { bw: JSON.parse(input[1]).averageSpeed } as ReadOrWriteOrTrim
+    }
+  }
+
+  const cancelRun = async () => {
     try {
-      const res = await fetch(`/api/drives/fio/cancel`);
+      const res = await fetch(`/api/drives/cancel`);
       if (res.ok) {
         setFioCallAllInProgress(false);
         setFioCallOnebyOneInProgress(false);
@@ -178,7 +196,9 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
 
     try {
       let devices = drives.map(d => `/dev/${d.device}`)
-      const fioStart = await fetch(`/api/drives/fio`, { 
+      const url = `/api/drives/${sdkNotFio ? 'sdk' : 'fio'}`
+
+      const fioStart = await fetch(url, { 
         method: 'POST',
         body: JSON.stringify({ devices: devices }),
         headers: { 'Content-Type': 'application/json' },
@@ -199,8 +219,8 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
     }
 
     setDriveUnderTestIndex(driveIndex);
-
-    const fioRes = await fetch(`/api/drives/fio`, { 
+    const url = `/api/drives/${sdkNotFio ? 'sdk' : 'fio'}`
+    const fioRes = await fetch(url, { 
       method: 'POST',
       body: JSON.stringify({ devices: [`/dev/${drives[driveIndex].device}`] }),
       headers: { 'Content-Type': 'application/json' },
@@ -267,7 +287,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
               percentage={fioAllProgress}
               position={fioAllProgress}
               disabled={false}
-              cancel={()=> cancelFio()}
+              cancel={()=> cancelRun()}
               warning={false}
               callback={() => callFioRunAll()}
               text='Write simultaneously'
@@ -286,13 +306,27 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
               percentage={fioOneByOneProgress}
               position={fioOneByOneProgress}
               disabled={false}
-              cancel={()=> cancelFio()}
+              cancel={()=> cancelRun()}
               warning={false}
               callback={() => callFioOneByOne(0)}
               text='Write independently'
             /> 
           </Box>          
         </Flex>  
+        <Flex 
+          alignItems={'center'}
+          justifyContent={'center'}
+          paddingBottom={'10px'}
+        >
+          Use fio &nbsp;
+          <Checkbox 
+            toggle 
+            onChange={() => setSdkNotFio(prev => !prev)} 
+            checked={sdkNotFio}
+            label="Use sdk"
+            disabled={fioCallAllInProgress || fioCallOneByOneInProgress}
+          />
+        </Flex>
         <Table
           onRowClick={(row) => handleResultClick(row.name)}
           rowKey='name'

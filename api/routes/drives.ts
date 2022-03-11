@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as Stream from 'stream'
 import * as process from 'child_process'
 import * as crypto from 'crypto';
 
@@ -29,27 +28,6 @@ const broadcastToSockets = (message: string) => {
   })
 }
 
-const onFail: OnFailFunction = async (dest: SourceDestination) => {
-  console.log(`Error during write | ${(await dest.getMetadata()).url}`)
-  broadcastToSockets(`Error: write failed on ${(await dest.getMetadata()).url}`)
-}
-
-const onProgress: OnProgressFunction = (progress: MultiDestinationProgress) => {
-  console.table(progress)
-  fs.writeFileSync(
-    path.join(__dirname, 'last_sdk_result.json'), 
-    JSON.stringify({
-      jobs: [
-        {
-          write: {
-            bw: progress.averageSpeed
-          }
-        }
-      ]
-    }));
-  broadcastToSockets(`progress: ${progress.percentage}`)
-}
-
 /* GET /dev/sd[a-z] drives and /dev/disk/by-path */
 router.get('/', async (req: Request, res:Response) => {
   try {
@@ -68,27 +46,46 @@ router.get('/', async (req: Request, res:Response) => {
 
 router.post('/sdk', async (req: Request, res: Response) => {
   const {
-    devices
+    devices,
+    size
   } = req.body;
 
-  const readBuffer = Buffer.from(crypto.randomBytes(250 * 1024 * 1024).toString('hex'));
-  const source = new ReadOnlyMemoryStream(readBuffer);
-
-  const destinations = devices.map((d: string) => new File({ path: d, write: true }))
-
   try {
-    const task = pipeSourceToDestinations({ 
-      source, 
-      destinations,
-      onFail,
-      onProgress
-    })
+    const sdkRun = process.spawn(
+      'node', 
+      [ 
+        path.join(__dirname, '..', 'services', 'child-tester.js'),      
+        devices.join(":"),
+        size || 250 * 1024 * 1024
+      ]
+    )
 
-    task.then((writeResult: PipeSourceToDestinationsResult) => {
-      console.log(`-- Sdk test done --`)
-      console.table(writeResult)
-      console.table(writeResult.sourceMetadata)
-      broadcastToSockets('done') 
+    if (sdkRun.pid) {
+      runningProcess[sdkRun.pid] = sdkRun
+    }  else {
+      res.status(501).send("Unable to spawn sdk write")
+      return
+    }
+  
+    sdkRun.on('exit', () => {
+      const processIds = Object.keys(runningProcess)
+      if (processIds.length !== 0) { // when canceled the exit should not say done
+        broadcastToSockets('done sdk')
+        
+        processIds.forEach(v => {
+          delete runningProcess[v];
+        })
+        
+        try {
+          DiagHistory
+          .createDrivesResult
+          .withData(fs.readFileSync(path.join(__dirname, '..', 'last_sdk_result.json'), 'utf8'))
+          .persist()
+  
+        } catch (err) {
+          console.error(err)
+        }
+      }
     })
 
     res.sendStatus(201);
@@ -182,7 +179,7 @@ router.post('/fio', async (req: Request, res: Response) => {
   res.sendStatus(201)
 })
 
-router.get('/fio/cancel', (req: Request, res: Response) => {
+router.get('/cancel', (req: Request, res: Response) => {
   broadcastToSockets('cancel')
   
   try {
