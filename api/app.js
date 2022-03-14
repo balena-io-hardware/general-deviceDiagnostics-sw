@@ -35,8 +35,8 @@ app.get('/api-docs', (req, res) => {
 });
 
 // serve the UI
-app.use(express.static(path.resolve(__dirname, '../ui/build')));
+app.use(express.static(path.resolve(__dirname, '../../ui/build'))); // relative to dist
 app.get('*', (_, res) => {
-  res.sendFile(path.resolve(__dirname, '../ui/build', 'index.html'));
+  res.sendFile(path.resolve(__dirname, '../../ui/build', 'index.html'));
 });
 module.exports = app;

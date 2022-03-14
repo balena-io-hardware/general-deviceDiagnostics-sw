@@ -308,7 +308,7 @@ paths:
               properties:
                 path:
                   type: string
-                  example: "patform-usb-scsi:0.0.0.0"
+                  example: "/dev/disks/by-path/xxxxxx"
                 device:
                   type: string
                   example: "sda"
@@ -403,6 +403,50 @@ paths:
           description: Success
         '501':
           description: Error
+  /drives/sdk:
+    post:
+      tags:
+        - drives
+      summary: Start fio run
+      description: >-
+        Flashes random data to test the speed. Creates a history
+        item.
+      operationId: runSdkOnDrives
+      parameters:
+        - in: body
+          name: body
+          schema:
+            type: object
+            properties:
+              devices:
+                type: array
+                items:
+                  type: string
+                description: 'List devices to test'
+                example:
+                  - /dev/sda
+                  - /dev/sdb              
+              size:
+                type: number
+                description: Amount of bytes to be written
+                example: 500    
+      responses:
+        '200':
+          description: Success
+        '501':
+          description: Error
+  /drives/cancel:
+    get:
+      tags:
+        - drives
+      summary: Cancels all running tests
+      description: Cancels all runnung tests
+      operationId: cancelAllRun
+      responses:
+        '200':
+          description: Success
+        '501':
+          description: Error, cannot kill process.
   /drives/fio/last:
     get:
       tags:
@@ -410,6 +454,18 @@ paths:
       summary: Get last fio result
       description: Returns the result of the most recent `fio` run
       operationId: getLastFioResult
+      responses:
+        '200':
+          description: Success
+        '501':
+          description: Error, no results yet.
+  /drives/sdk/last:
+    get:
+      tags:
+        - drives
+      summary: Get last skd result
+      description: Returns the result of the most recent run by etcher sdk
+      operationId: getLastSdkResult
       responses:
         '200':
           description: Success

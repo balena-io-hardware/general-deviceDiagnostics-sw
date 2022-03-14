@@ -1,21 +1,24 @@
-var express = require('express');
-var router = express.Router();
-var fs = require('fs');
-var process = require('child_process');
-var path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
+import * as process from 'child_process'
 
-var DiagHistory = require('../services/DiagResult').DiagHistory
-var drivesSocket = require('../sockets/drives')
+import { Request, Response } from 'express'
+import * as express from 'express';
+
+import { DiagHistory } from '../services/DiagResult'
+import * as drivesSocket from '../sockets/drives'
+
 let runningProcess = {};
+var router = express.Router();
 
-const broadcastToSockets = (message) => {
+const broadcastToSockets = (message: string) => {
   [...drivesSocket.clients.keys()].forEach(client => {
     client.send(message);
   })
 }
 
 /* GET /dev/sd[a-z] drives and /dev/disk/by-path */
-router.get('/', async (req, res, next) => {
+router.get('/', async (req: Request, res:Response) => {
   try {
     const drives = fs.readdirSync("/dev/disk/by-path")
       .filter(f => f.indexOf('usb') > -1 && f.indexOf("scsi") > -1)
@@ -25,12 +28,64 @@ router.get('/', async (req, res, next) => {
       .filter(d => d.device.length === 3) // no partitions /sda1 /sda2 ... 
       
     res.json(drives);
-  } catch {
-    res.sendStatus(501)
+  } catch (err){
+    res.status(501).send(err)
   }
 });
 
-router.post('/fio', async (req, res, next) => {
+router.post('/sdk', async (req: Request, res: Response) => {
+  const {
+    devices,
+    size
+  } = req.body;
+
+  try {
+    const sdkRun = process.spawn(
+      'node', 
+      [ 
+        path.join(__dirname, '..', 'services', 'child-tester.js'),      
+        devices.join(":"),
+        size || 250 * 1024 * 1024
+      ]
+    )
+
+    if (sdkRun.pid) {
+      runningProcess[sdkRun.pid] = sdkRun
+    }  else {
+      res.status(501).send("Unable to spawn sdk write")
+      return
+    }
+  
+    sdkRun.on('exit', () => {
+      const processIds = Object.keys(runningProcess)
+      if (processIds.length !== 0) { // when canceled the exit should not say done
+        broadcastToSockets('done sdk')
+        
+        processIds.forEach(v => {
+          delete runningProcess[v];
+        })
+        
+        try {
+          DiagHistory
+          .createDrivesResult
+          .withData(fs.readFileSync(path.join(__dirname, '..', 'last_sdk_result.json'), 'utf8'))
+          .persist()
+  
+        } catch (err) {
+          console.error(err)
+        }
+      }
+    })
+
+    res.sendStatus(201);
+  } catch (err) {
+    console.log(err);
+    res.status(501).send(err)
+  }
+
+})
+
+router.post('/fio', async (req: Request, res: Response) => {
   const { 
     devices, 
     rw, 
@@ -63,7 +118,7 @@ router.post('/fio', async (req, res, next) => {
     `--direct=${direct || 0}`,
     `--rw=${rw || "write"}`,
     `--bs=${bs || "1024k"}`,
-    `--runtime=${runtime || 10}`,
+    `--runtime=${runtime || 20}`,
     '--time_based',
     `--numjobs=${numjobs || 1}`,
     `--name=${name || `etcher_test_${new Date(Date.now()).toISOString()}`}`,
@@ -82,7 +137,12 @@ router.post('/fio', async (req, res, next) => {
   console.log("fio", fileName)
 
   let fioRun = process.spawn('fio', parameters);
-  runningProcess[fioRun.pid] = fioRun
+  if (fioRun.pid) {
+    runningProcess[fioRun.pid] = fioRun
+  }  else {
+    res.status(501).send("Unable to spawn fio")
+    return
+  }
 
   fioRun.on('exit', () => {
     const processIds = Object.keys(runningProcess)
@@ -108,7 +168,7 @@ router.post('/fio', async (req, res, next) => {
   res.sendStatus(201)
 })
 
-router.get('/fio/cancel', (req, res) => {
+router.get('/cancel', (req: Request, res: Response) => {
   broadcastToSockets('cancel')
   
   try {
@@ -127,7 +187,17 @@ router.get('/fio/cancel', (req, res) => {
   res.status(204).send()
 })
 
-router.get('/fio/last', async (req, res, next) => {
+router.get('/sdk/last', async (_: Request, res: Response) => {
+  try {
+    const data = fs.readFileSync(path.join(__dirname, '..', 'last_sdk_result.json'), 'utf8')
+    res.send(data)
+  } catch (err) {
+    console.error(err)
+    res.sendStatus(501);
+  }
+})
+
+router.get('/fio/last', async (_: Request, res: Response) => {
   try {
     const data = fs.readFileSync(path.join(__dirname, 'last_fio_result.json'), 'utf8')
     res.json(JSON.parse(data))
