@@ -29,9 +29,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PAT_HW_DIAG }}
-          
-      - name: Build contents
-        run: cd ui && npm run build
         
       - name: Build and push
         uses: docker/build-push-action@v2
