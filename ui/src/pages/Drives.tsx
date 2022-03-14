@@ -372,7 +372,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
       <Flex 
           alignItems={'flex-end'} 
           justifyContent={'center'}
-          style={{padding: '15px 0 30px 0'}}
+          style={{padding: '15px 0 30px 0', marginBottom: '40px' }}
       >
         <Button outline onClick={() => onBack ? onBack() : null }>Back</Button>
          &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 

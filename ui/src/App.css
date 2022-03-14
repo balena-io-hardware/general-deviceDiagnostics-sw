@@ -16,7 +16,7 @@
   left: 0px;
   right: 0px;
   min-width: 100vw;
-  min-height: calc(100vh - 90px);
+  min-height: 100vh;
   border: none;
   margin: 0;
   padding: 0;
