@@ -190,7 +190,7 @@ router.get('/cancel', (req: Request, res: Response) => {
 router.get('/sdk/last', async (_: Request, res: Response) => {
   try {
     const data = fs.readFileSync(path.join(__dirname, '..', 'last_sdk_result.json'), 'utf8')
-    res.json(JSON.parse(data))
+    res.send(data)
   } catch (err) {
     console.error(err)
     res.sendStatus(501);
