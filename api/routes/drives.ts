@@ -1,23 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as process from 'child_process'
-import * as crypto from 'crypto';
 
 import { Request, Response } from 'express'
 import * as express from 'express';
 
-import { 
-  MultiDestinationProgress,
-  OnFailFunction, 
-  OnProgressFunction, 
-  pipeSourceToDestinations,
-  PipeSourceToDestinationsResult
-} from 'etcher-sdk/build/multi-write'
-import { SourceDestination, File } from 'etcher-sdk/build/source-destination';
-
 import { DiagHistory } from '../services/DiagResult'
 import * as drivesSocket from '../sockets/drives'
-import { ReadOnlyMemoryStream } from '../services/ReadOnlyMemoryStream';
 
 let runningProcess = {};
 var router = express.Router();
