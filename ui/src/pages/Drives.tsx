@@ -169,10 +169,15 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
   }
 
   const parseSdkResultToDict = (input: string[]) => {
-
+    const inputData = JSON.parse(input[1].trim())
     return { 
-      name: input[0],
-      data: { bw: JSON.parse(input[1]).averageSpeed } as ReadOrWriteOrTrim
+      name: input[0].trim(),
+      data: { 
+        bw: inputData.speed / 1000,
+        bw_mean: inputData.averageSpeed / 1000,
+        bw_min: 0,
+        bw_max: 0
+      } as ReadOrWriteOrTrim
     }
   }
 
@@ -346,13 +351,13 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
               field: 'data',
               key: 'max',
               label: 'Max',
-              render: (value) => `${(value.bw_max/1000).toFixed(2)} MB/s`
+              render: (value) => sdkNotFio ? `-` : `${(value.bw_max/1000).toFixed(2)} MB/s`
             },
             {
               field: 'data',
               key: 'min',
               label: 'Min', 
-              render: (value) => `${(value.bw_min/1000).toFixed(2)} MB/s`
+              render: (value) => sdkNotFio ? `-` : `${(value.bw_min/1000).toFixed(2)} MB/s`
             },
             {
               field: 'data',
@@ -367,7 +372,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
       <Flex 
           alignItems={'flex-end'} 
           justifyContent={'center'}
-          style={{padding: '15px 0 30px 0' }}
+          style={{padding: '15px 0 30px 0'}}
       >
         <Button outline onClick={() => onBack ? onBack() : null }>Back</Button>
          &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 
