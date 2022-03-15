@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Button, Checkbox, HighlightedName, Table, Txt, Flex } from 'rendition'
+import { Box, Button, Checkbox, HighlightedName, Table, Txt, Flex, } from 'rendition'
 import { ProgressButton } from '../components/progress-button/progress-button';
 import { FioResult, ReadOrWriteOrTrim } from '../iterfaces/FioResult';
 import { LedService } from '../services/Leds'
+
+import { faRecycle } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 type DrivesPageProps = {
   onDataReceived?: (data: any) => void
@@ -276,7 +279,14 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
   return (
     <>
       <Box style={{textAlign: 'left', padding: '10px 0 0 10px '}}>
-        <HighlightedName>{drives.length +' drives'}</HighlightedName>
+        <Button
+          icon={<FontAwesomeIcon icon={faRecycle} />}
+          plain
+          onClick={() => getDrives()}
+        >
+          <HighlightedName>{drives.length +' drives'}
+          </HighlightedName>
+        </Button>
       </Box>
       <Box style={{overflowY: 'auto', height: '100%'}}>
         <Flex 
