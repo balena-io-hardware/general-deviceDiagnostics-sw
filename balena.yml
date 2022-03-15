@@ -1,8 +1,8 @@
 name: hardware-diagnostics
 description: >-
-  Block enabling you to gather hardware information and control hardware interfaces
+  Block enabling you to gather hardware information and control hardware components
 fleetcta: hardware-diagnostics
-version: 0.0.1
+version: 0.0.3
 type: sw.application
 assets:
   repository:
