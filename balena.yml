@@ -1,0 +1,25 @@
+name: hardware-diagnostics
+description: >-
+  Block enabling you to gather hardware information and control hardware interfaces
+fleetcta: hardware-diagnostics
+version: 0.0.1
+type: sw.application
+assets:
+  repository:
+    type: blob.asset
+    data:
+      url: 'https://github.com/mcraa/hardware-diagnostics'
+  logo:
+    type: blob.asset
+    data:
+      url: 'https://raw.githubusercontent.com/mcraa/hardware-diagnostics/master/icon.png'
+data:
+  defaultDeviceType: etcherpro
+  supportedDeviceTypes:
+    - raspberrypi3
+    - raspberrypi3-64
+    - intel-nuc
+    - genericx86-64-ext
+    - raspberrypi400-64
+    - jetson-nano
+    - fincm3
