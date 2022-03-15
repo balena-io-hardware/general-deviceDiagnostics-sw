@@ -142,8 +142,11 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
   }
 
   useInterval(() => {
-    setFioAllProgress(prevState => prevState + Math.floor(Math.random() * 7))
-  }, fioCallAllInProgress ? 600 : undefined)
+    setFioAllProgress(prevState => { 
+      const newState = prevState + Math.floor(Math.random() * 3) 
+      return newState > 99 ? 99 : newState
+    })
+  }, fioCallAllInProgress ? 700 : undefined)
 
   useInterval(() => {
     setFioOneByOneProgress(prevState => prevState + Math.floor(Math.random() * 3))
