@@ -1,7 +1,7 @@
 
 FROM balenalib/aarch64-alpine-node:12-latest as basewithdeps
 
-RUN apk add fio
+RUN apk update && apk add fio
 
 # api
 FROM balenalib/aarch64-debian-node:12.20-buster-build as api-builder
