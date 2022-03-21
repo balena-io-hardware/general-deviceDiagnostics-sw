@@ -60,7 +60,7 @@ export const NetworkInfo = ({ onDataReceived, onBack, onNext }: NetworkInfoProps
           alignItems={'flex-end'} 
           height={'100%'} 
           justifyContent={'center'}
-          style={{paddingBottom: '30px', marginBottom: '40px'}}
+          style={{paddingBottom: '30px', marginBottom: '7px'}}
         >
           <Button outline onClick={() => onBack ? onBack() : null }>Back</Button>&nbsp;
           {/* <Button primary onClick={() => onNext ? onNext() : null }>Finish</Button>&nbsp; */}

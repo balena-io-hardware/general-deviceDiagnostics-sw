@@ -83,7 +83,7 @@ export const DiagSteps = ({ onClose }: DiagStepsProps) => {
             <Flex 
               alignItems={'flex-end'} 
               justifyContent={'center'}
-              style={{position: 'absolute', left: '30%', right: '30%', bottom: '60px', zIndex: 999}}
+              style={{position: 'absolute', left: '30%', right: '30%', bottom: '40px', zIndex: 999}}
             >
               <Button outline onClick={() => prevStep('start') }>Back</Button>
                &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 

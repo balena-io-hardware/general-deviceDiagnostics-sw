@@ -85,7 +85,7 @@ export const Leds = ({ autoload, onDataReceived, onBack, onNext }: LedsPageProps
         alignItems={'flex-end'} 
         height={'100%'} 
         justifyContent={'center'}
-        style={{paddingBottom: '30px', marginBottom: '40px'}}
+        style={{paddingBottom: '30px', marginBottom: '7px'}}
       >
         <Button outline onClick={() => onBack ? onBack() : null }>Back</Button>
          &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;         

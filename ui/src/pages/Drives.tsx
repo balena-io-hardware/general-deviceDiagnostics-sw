@@ -143,14 +143,17 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
 
   useInterval(() => {
     setFioAllProgress(prevState => { 
-      const newState = prevState + Math.floor(Math.random() * 3) 
+      const newState = prevState + parseFloat((Math.round(Math.random() * 99) / ((sdkNotFio ? (drives.length / 1.4) : 5) * 10)).toFixed(2))
       return newState > 99 ? 99 : newState
     })
-  }, fioCallAllInProgress ? 700 : undefined)
+  }, fioCallAllInProgress ? 500 : undefined)
 
   useInterval(() => {
-    setFioOneByOneProgress(prevState => prevState + Math.floor(Math.random() * 3))
-  }, fioCallOneByOneInProgress ? 800 : undefined)
+    setFioOneByOneProgress(prevState => { 
+      const newState = prevState + parseFloat((Math.round(Math.random() * 60) / (drives.length * 10)).toFixed(2))
+      return newState > 99 ? 99 : newState
+    })
+  }, fioCallOneByOneInProgress ? 900 : undefined)
 
   const getDrives = async () => {
     const res = await fetch(`/api/drives`)
@@ -323,6 +326,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
               active={fioCallOneByOneInProgress}
               percentage={fioOneByOneProgress}
               position={fioOneByOneProgress}
+              decimals={2}
               disabled={false}
               cancel={()=> cancelRun()}
               warning={false}
@@ -385,7 +389,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
       <Flex 
           alignItems={'flex-end'} 
           justifyContent={'center'}
-          style={{padding: '15px 0 30px 0', marginBottom: '40px' }}
+          style={{padding: '15px 0 30px 0', marginBottom: '7px' }}
       >
         <Button outline onClick={() => onBack ? onBack() : null }>Back</Button>
          &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 

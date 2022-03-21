@@ -43,6 +43,7 @@ interface ProgressButtonProps {
 	active: boolean;
 	percentage: number;
 	position: number;
+	decimals?: number
 	disabled: boolean;
 	cancel: (type: string) => void;
 	callback: () => void;
@@ -77,12 +78,15 @@ interface FlashState {
 
 
 export class ProgressButton extends React.PureComponent<ProgressButtonProps> {
+	getFormattedPercents() {
+		return `${this.props.position.toFixed(this.props.decimals || 2)} %`
+	}
+
 	public render() {
 		const percentage = this.props.percentage;
 		const warning = this.props.warning;
-		const { status, position } = { 
-			status: this.props.progressText, 
-			position: this.props.position 
+		const { status } = { 
+			status: this.props.progressText
 		} 
 		const type = this.props.type || 'default';
 		if (this.props.active) {
@@ -100,7 +104,7 @@ export class ProgressButton extends React.PureComponent<ProgressButtonProps> {
 					>
 						<Flex>
 							<Txt color="#2a506f">{status}&nbsp;</Txt>
-							<Txt color={colors[type]}>{position}%</Txt>
+							<Txt color={colors[type]}>{this.getFormattedPercents()}</Txt>
 						</Flex>
 						{type && (
 							<CancelButton
