@@ -36,7 +36,8 @@ router.get('/', async (req: Request, res:Response) => {
 router.post('/sdk', async (req: Request, res: Response) => {
   const {
     devices,
-    size
+    size,
+    numBuffers
   } = req.body;
 
   try {
@@ -45,7 +46,8 @@ router.post('/sdk', async (req: Request, res: Response) => {
       [ 
         path.join(__dirname, '..', 'services', 'child-tester.js'),      
         devices.join(":"),
-        size || 250 * 1024 * 1024
+        size || 250 * 1024 * 1024,
+        numBuffers || 600
       ]
     )
 

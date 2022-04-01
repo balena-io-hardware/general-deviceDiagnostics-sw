@@ -14,6 +14,7 @@ import { ReadOnlyMemoryStream } from '../services/ReadOnlyMemoryStream';
 
 const devices = process.argv[2].split(':')
 const size = parseInt(process.argv[3])
+const numBuffers = parseInt(process.argv[4])
 
 const onFail: OnFailFunction = async (dest: SourceDestination) => {
   console.log(`Error during write | ${(await dest.getMetadata()).url}`)
@@ -34,7 +35,8 @@ const task = pipeSourceToDestinations({
     source, 
     destinations,
     onFail,
-    onProgress
+    onProgress,
+    numBuffers
 })
 
 const run = async () => {
