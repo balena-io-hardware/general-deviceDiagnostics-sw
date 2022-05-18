@@ -128,7 +128,7 @@ router.post('/fio', async (req: Request, res: Response) => {
     `--io_size=${io_size || "10g"}`,
     `--ioengine=${ioengine || "libaio"}`,
     `--iodepth=${iodepth || 32}`,
-    `--fsync=${fsync || 10000}`,
+    `--fsync=${fsync || 64}`,
     `--invalidate=${invalidate || 0}`,
     `--overwrite=${overwrite || 0}`,
     '--group_reporting',
