@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Button, Checkbox, HighlightedName, Table, Txt, Flex, } from 'rendition'
+import { Box, Button, HighlightedName, Table, Txt, Flex, ButtonGroup, } from 'rendition'
 import { ProgressButton } from '../components/progress-button/progress-button';
 import { FioResult, ReadOrWriteOrTrim } from '../iterfaces/FioResult';
 import { LedService } from '../services/Leds'
@@ -43,7 +43,8 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
   const [fioCallAllInProgress, setFioCallAllInProgress] = useState<boolean>(false)  
   const [canceled, setCanceled] = useState(false);
   const [driveUnderTestIndex, setDriveUnderTestIndex] = useState<number>(0);
-  const [sdkNotFio, setSdkNotFio] = useState(false);
+  const [sdkNotFio, setSdkNotFio] = useState(true);
+  const [disabledDrives, setDisabledDrives] = useState<number[]>([])
 
   useEffect(() => {
     const ws = new WebSocket(`ws://${window.location.hostname}:7071`)
@@ -156,11 +157,16 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
   }, fioCallOneByOneInProgress ? 900 : undefined)
 
   const getDrives = async () => {
-    const res = await fetch(`/api/drives`)
-    const drivesResponse = await res.json()
-    setDrives(drivesResponse);
-    if (onDataReceived) {
-      onDataReceived({ devices: drivesResponse })
+    try {
+      const res = await fetch(`/api/drives`)
+      const drivesResponse = await res.json()
+      setDrives(drivesResponse);
+      setDisabledDrives([])
+      if (onDataReceived) {
+        onDataReceived({ devices: drivesResponse })
+      }
+    } catch (err) {
+      console.log("Cant get drives", err)
     }
   } 
 
@@ -205,7 +211,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
   }
   
   const callFioRunAll = async () => {
-
+    setFioResults([]);
     setFioAllProgress(1);
 
     try {
@@ -229,7 +235,17 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
   const callFioOneByOne = async (driveIndex: number) => {    
     if (driveIndex === 0) {
       setCanceled(false)
+      setFioResults([])
       setFioOneByOneProgress(1);
+    }
+    
+    if (disabledDrives.indexOf(driveIndex) > -1) {
+      if (driveIndex === drives.length - 1) {
+        setFioCallOnebyOneInProgress(false)
+        return;
+      }
+      callFioOneByOne(driveIndex + 1);
+      return;
     }
 
     setDriveUnderTestIndex(driveIndex);
@@ -282,37 +298,37 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
     }
   }
 
+  const toggleDisableDrive = (i: number) => {
+    const index = disabledDrives.indexOf(i)
+    if (index > -1) {
+      const temp = [...disabledDrives]
+      temp.splice(index, 1); 
+      setDisabledDrives(temp);
+    } else {
+      setDisabledDrives([...disabledDrives, i])
+    }
+  }
+
   return (
     <>
-      <Box style={{textAlign: 'left', padding: '10px 0 0 10px '}}>
-        <Button
-          icon={<FontAwesomeIcon icon={faRecycle} />}
-          plain
-          onClick={() => getDrives()}
-        >
-          <HighlightedName>{drives.length +' drives'}
-          </HighlightedName>
-        </Button>
-      </Box>
-      <Box style={{overflowY: 'auto', height: '100%'}}>
+      
+      <Box style={{overflowY: 'auto', height: '100%', paddingTop: '10px'}}>
         <Flex 
           alignItems={'center'}
           justifyContent={'center'}
           paddingBottom={'10px'}
         >      
           <Box width={'210px'}>
-            <ProgressButton  
-              type='flashing'
-              progressText='Writing...'
-              active={fioCallAllInProgress}
-              percentage={fioAllProgress}
-              position={fioAllProgress}
-              disabled={false}
-              cancel={()=> cancelRun()}
-              warning={false}
-              callback={() => callFioRunAll()}
-              text='Write simultaneously'
-            />
+            <Box style={{textAlign: 'left', padding: '10px 0 0 10px '}}>
+              <Button
+                icon={<FontAwesomeIcon icon={faRecycle} />}
+                plain
+                onClick={() => getDrives()}
+              >
+                <HighlightedName>{drives.length +' drives connected'}
+                </HighlightedName>
+              </Button>
+            </Box>
           </Box>  
           <Box>
             &nbsp;
@@ -331,24 +347,31 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
               cancel={()=> cancelRun()}
               warning={false}
               callback={() => callFioOneByOne(0)}
-              text='Write independently'
+              text={`Flash ${drives.length - disabledDrives.length} drives`}
             /> 
           </Box>          
         </Flex>  
-        <Flex 
+
+        <Flex
           alignItems={'center'}
           justifyContent={'center'}
           paddingBottom={'10px'}
         >
-          Use fio &nbsp;
-          <Checkbox 
-            toggle 
-            onChange={() => setSdkNotFio(prev => !prev)} 
-            checked={sdkNotFio}
-            label="Use sdk"
-            disabled={fioCallAllInProgress || fioCallOneByOneInProgress}
-          />
+          <ButtonGroup>
+            <>
+              {drives.map((d, i) => 
+                <Button 
+                  size='small'
+                  primary={disabledDrives.indexOf(i) === -1}
+                  onClick={() => toggleDisableDrive(i)}
+                >
+                  {i+1}
+                </Button>
+              )}
+            </>
+          </ButtonGroup>
         </Flex>
+        
         <Table
           onRowClick={(row) => handleResultClick(row.name)}
           rowKey='name'
