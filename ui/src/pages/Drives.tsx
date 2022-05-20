@@ -268,18 +268,29 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
     let driveIndex = drives.findIndex(d => d.device === device)
 
     if (driveIndex > -1) {
-      let driveName = drives[driveIndex].path
-      let led_blue = driveLeds[driveName][2] // led.*_b
-    
-      if (toggleLeds[driveName]) {
-        setToggleLeds(prevState => { return { ...prevState, [driveName]: false } })
-        await LedService.callOneLed(led_blue, "0")
-      } else {
-        setToggleLeds(prevState => { return { ...prevState, [driveName]: true } })
-        await LedService.callOneLed(led_blue, "99")
-      }
+      await toggleLed(drives[driveIndex].path, 'blue')
     } else {
       console.error(`device: ${device} mapping cannot be resolved`)
+    }
+  }
+
+  const toggleLed = async (drivePath: string, color?: 'red' | 'green' | 'blue') => {
+    const leds = {
+      red: driveLeds[drivePath][0], // led.*_r
+      green: driveLeds[drivePath][1], // led.*_g
+      blue: driveLeds[drivePath][2] // led.*_b
+    } 
+    
+    // reset
+    await LedService.callOneLed(leds['red'], "0")
+    await LedService.callOneLed(leds['green'], "0")
+    await LedService.callOneLed(leds['blue'], "0")
+
+    if (toggleLeds[drivePath]) {
+      setToggleLeds(prevState => { return { ...prevState, [drivePath]: false } })
+    } else {
+      setToggleLeds(prevState => { return { ...prevState, [drivePath]: true } })
+      await LedService.callOneLed(color ? leds[color] : leds['blue'], "99")
     }
   }
 
@@ -298,7 +309,8 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
     }
   }
 
-  const toggleDisableDrive = (i: number) => {
+  const toggleDisableDrive = async (i: number, devicePath: string) => {
+    await toggleLed(devicePath, 'red')
     const index = disabledDrives.indexOf(i)
     if (index > -1) {
       const temp = [...disabledDrives]
@@ -363,9 +375,9 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
                 <Button 
                   size='small'
                   primary={disabledDrives.indexOf(i) === -1}
-                  onClick={() => toggleDisableDrive(i)}
+                  onClick={() => toggleDisableDrive(i, d.path)}
                 >
-                  {i+1}
+                  {getSlotNumberByLed(d.device)}
                 </Button>
               )}
             </>
