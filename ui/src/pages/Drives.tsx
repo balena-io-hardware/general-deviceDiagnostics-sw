@@ -303,7 +303,7 @@ export const Drives = ({ autoload, onDataReceived, onBack, onNext }: DrivesPageP
 
     if (driveIndex > -1) {
       let driveName = drives[driveIndex].path
-      let ledOne = driveLeds ? driveLeds[driveName][0] : '' // led.*_r
+      let ledOne = driveLeds ? driveLeds[driveName] ? driveLeds[driveName][0] : '' : '' // led.*_r
       const numberPattern = /\d+/g;
       return ledOne.match(numberPattern)?.join('')
     }
